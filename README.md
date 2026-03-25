@@ -98,8 +98,6 @@ Implemented using Jest:
 
 ---
 
-# 🧠 Architecture Overview
-
 ## 🧠 Architecture & Fact Generation Flow
 
 ```mermaid
@@ -156,5 +154,5 @@ sequenceDiagram
     end
 
     Client->>Client: Render fact in UI
-```md
+```
 This diagram reflects the Variant A implementation, including caching, concurrency control, and failure handling mechanisms.
