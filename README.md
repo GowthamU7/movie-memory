@@ -156,3 +156,111 @@ sequenceDiagram
     Client->>Client: Render fact in UI
 ```
 This diagram reflects the Variant A implementation, including caching, concurrency control, and failure handling mechanisms.
+
+
+---
+
+## 🔁 Fact Generation Flow
+
+1. User requests `/api/fact`
+2. Backend checks latest stored fact
+3. If within 60 seconds → return cached
+4. Else:
+   - acquire lock
+   - generate new fact via OpenAI
+   - store in DB
+   - release lock
+5. If OpenAI fails → fallback to last cached fact
+
+---
+
+# ⚖️ Key Tradeoffs
+
+| Decision | Reason | Tradeoff |
+|--------|------|---------|
+| DB-based locking | Simple and reliable | Not ideal for distributed systems |
+| Polling for lock | Easy to implement | Slight latency overhead |
+| Server-side caching | Strong consistency | No cross-instance caching |
+
+---
+
+# 🚀 Improvements (With More Time)
+
+- Redis-based distributed locking
+- Background job queue (BullMQ / SQS)
+- Rate limiting per user
+- Streaming OpenAI responses
+- Observability (logging, tracing)
+
+---
+
+# 🛠️ Setup Instructions
+
+## 1. Clone repository
+
+```bash
+git clone https://github.com/GowthamU7/movie-memory
+cd movie-memory
+
+npm install
+```
+
+## 2. Create .env
+
+```bash
+DATABASE_URL=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=http://localhost:3000
+OPENAI_API_KEY=
+```
+
+## 3. Database Setup
+
+```bash
+npx prisma migrate dev
+npx prisma generate
+```
+
+## 4. Run Application
+
+```bash
+
+npm run dev
+npm test
+```
+
+🔐 Security Considerations
+
+```bash
+
+  Server-side validation of user input
+  Users cannot access other users’ data
+  Secrets stored only in environment variables
+  Graceful handling of missing profile data
+
+```
+
+🤖 AI Usage Disclosure
+
+```bash
+  AI tools were used to:
+    assist with project scaffolding
+    validate implementation approaches
+    improve code clarity and documentation
+  All design decisions, logic, and tradeoffs were fully reviewed and understood
+```
+
+🏁 Summary
+
+```bash
+This project demonstrates:
+
+  Full-stack application development
+  Secure authentication and data handling
+  Backend caching strategies
+  Concurrency control and idempotency
+  Resilient AI integration
+  Clean, testable architecture
+```
