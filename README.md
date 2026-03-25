@@ -1,5 +1,9 @@
 # 🎬 Movie Memory — Full-Stack AI Application
 
+![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-blue)
+![Prisma](https://img.shields.io/badge/Prisma-ORM-green)
+![OpenAI](https://img.shields.io/badge/OpenAI-API-purple)
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
