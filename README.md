@@ -5,39 +5,156 @@
 ![Prisma](https://img.shields.io/badge/Prisma-ORM-green)
 ![OpenAI](https://img.shields.io/badge/OpenAI-API-purple)
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+A full-stack web application that allows users to authenticate via Google, store their favorite movie, and generate AI-powered fun facts with backend caching and concurrency control.
 
-## Getting Started
+---
 
-First, run the development server:
+# 🚀 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### 🔐 Authentication
+- Google OAuth login (NextAuth/Auth.js)
+- Secure session handling
+- Protected routes
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 🧾 Onboarding
+- First-time users provide their favorite movie
+- Server-side validation:
+  - trimmed input
+  - min/max length enforced
+- Stored in PostgreSQL via Prisma
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+### 📊 Dashboard
+Displays:
+- User name
+- Email
+- Profile photo (fallback if unavailable)
+- Favorite movie
+- Logout button
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 🤖 AI Fact Generation
+- Generates fun facts using OpenAI API
+- Stores facts in database
+- Supports repeated generation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+# ⚡ Variant Chosen
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## ✅ Variant A — Backend-Focused (Caching & Correctness)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+I chose Variant A to demonstrate backend correctness, caching strategies, and concurrency handling. This aligns with my interest in backend systems and scalable architectures.
+
+---
+
+# ⚙️ Variant A Implementation
+
+## ⏱️ 1. 60-Second Cache Window
+
+- Retrieves latest fact for `(userId + movie)`
+- If within 60 seconds → returns cached result
+- Else → generates new fact and stores it
+
+✅ Reduces API calls  
+✅ Improves performance  
+
+---
+
+## 🔒 2. Concurrency / Burst Protection
+
+Implemented using a **database-backed lock (`isGenerating`)**
+
+### Approach:
+- Acquire lock via atomic DB update (`updateMany`)
+- If another request is generating:
+  - wait briefly (polling)
+  - reuse cached result if available
+
+### Prevents:
+- duplicate OpenAI calls
+- race conditions from rapid refresh / multi-tabs
+
+---
+
+## 🛟 3. Failure Handling
+
+If OpenAI fails:
+- return most recent cached fact (if exists)
+- otherwise return user-friendly error
+
+---
+
+## 🧪 4. Backend Tests
+
+Implemented using Jest:
+
+- ✅ Cache logic test (ensures reuse within 60 seconds)
+- ✅ Authorization test (ensures user isolation)
+
+---
+
+# 🧠 Architecture Overview
+
+## 🧠 Architecture & Fact Generation Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as Next.js API Route
+    participant Service as Fact Service Layer
+    participant DB as PostgreSQL (Prisma)
+    participant OpenAI
+
+    Client->>API: Request /api/fact
+    API->>Service: getMovieFactForUser()
+
+    Service->>DB: Fetch latest fact (userId + movie)
+
+    alt Cached fact < 60s
+        DB-->>Service: Return latest fact
+        Service-->>API: Return cached fact
+        API-->>Client: JSON response
+    else No valid cache
+        Service->>DB: Check isGenerating flag
+
+        alt Another request generating
+            Service->>Service: Wait (polling)
+            Service->>DB: Re-check latest fact
+            DB-->>Service: Return newly generated fact
+            Service-->>API: Return cached-after-wait
+            API-->>Client: JSON response
+        else No active generation
+            Service->>DB: Acquire lock (isGenerating = true)
+
+            Service->>OpenAI: Generate movie fact
+
+            alt OpenAI success
+                OpenAI-->>Service: Return fact text
+                Service->>DB: Save fact
+                Service->>DB: Release lock (isGenerating = false)
+                Service-->>API: Return generated fact
+                API-->>Client: JSON response
+            else OpenAI failure
+                Service->>DB: Fetch last cached fact
+                alt Cached exists
+                    DB-->>Service: Return fallback fact
+                    Service->>DB: Release lock
+                    Service-->>API: Return fallback
+                    API-->>Client: JSON response
+                else No fallback
+                    Service->>DB: Release lock
+                    Service-->>API: Return error
+                    API-->>Client: Error response
+                end
+            end
+        end
+    end
+
+    Client->>Client: Render fact in UI
+```md
+This diagram reflects the Variant A implementation, including caching, concurrency control, and failure handling mechanisms.
