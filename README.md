@@ -264,3 +264,6 @@ This project demonstrates:
   Resilient AI integration
   Clean, testable architecture
 ```
+
+  Loom Video
+  https://www.loom.com/embed/12c93369d7754fb6823dabf292e3f6a9
